@@ -1,0 +1,1108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f5f0">
+  <title>Gather — Event planner</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #242a24;
+      --muted: #81877d;
+      --line: #e9e9e2;
+      --paper: #fff;
+      --canvas: #f7f5f0;
+      --green: #355d45;
+      --green-2: #eaf0e9;
+      --orange: #e7a36f;
+      --peach: #fbefe4;
+      --lilac: #eeeaf5;
+      --shadow: 0 12px 36px rgba(34, 43, 34, .055);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--ink); background: var(--canvas); font-size: 14px; }
+    button, input, select, textarea { font: inherit; }
+    button { color: inherit; }
+    button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+      outline: 3px solid rgba(53, 93, 69, .22);
+      outline-offset: 2px;
+    }
+    .app { min-height: 100vh; display: grid; grid-template-columns: 248px minmax(0, 1fr); }
+    .sidebar {
+      position: sticky; top: 0; height: 100vh; padding: 28px 17px 20px;
+      background: #fff; border-right: 1px solid var(--line); display: flex; flex-direction: column;
+    }
+    .brand { display: flex; align-items: center; gap: 11px; padding: 0 10px; margin-bottom: 36px; }
+    .brand-mark {
+      display: grid; place-items: center; width: 36px; height: 36px; border-radius: 12px;
+      background: var(--green); color: white; font-family: Georgia, serif; font-size: 21px;
+    }
+    .brand-name { font: 600 21px Georgia, serif; letter-spacing: -.5px; }
+    .brand-tag { color: var(--muted); font-size: 10px; letter-spacing: .11em; text-transform: uppercase; margin-top: 2px; }
+    .workspace-label { padding: 0 12px; margin-bottom: 10px; color: #a0a49b; font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+    .nav { display: grid; gap: 5px; }
+    .nav-button {
+      border: 0; background: transparent; padding: 11px 12px; border-radius: 10px;
+      display: flex; align-items: center; gap: 12px; text-align: left; color: #72796f; cursor: pointer;
+    }
+    .nav-button:hover { background: #f7f7f3; color: var(--ink); }
+    .nav-button.active { background: var(--green-2); color: var(--green); font-weight: 650; }
+    .nav-icon { width: 18px; text-align: center; font-size: 16px; }
+    .nav-count { margin-left: auto; font-size: 11px; color: var(--muted); }
+    .sidebar-bottom { margin-top: auto; }
+    .side-event {
+      padding: 14px; margin: 0 2px 18px; background: #f8f6f1; border-radius: 13px;
+    }
+    .side-event-label { color: var(--muted); font-size: 11px; margin-bottom: 7px; }
+    .side-event-name { font-weight: 650; font-size: 13px; }
+    .side-event-date { color: var(--muted); font-size: 11px; margin-top: 4px; }
+    .profile { border-top: 1px solid var(--line); padding: 16px 7px 0; display: flex; align-items: center; gap: 10px; }
+    .avatar { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: #f4dfcf; color: #815b42; font-weight: 700; }
+    .profile-name { font-size: 12px; font-weight: 650; }
+    .profile-caption { margin-top: 2px; color: var(--muted); font-size: 10px; }
+    main { min-width: 0; max-width: 1600px; width: 100%; margin: 0 auto; padding: 28px 42px 50px; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; gap: 16px; }
+    .breadcrumb { color: var(--muted); font-size: 12px; }
+    .top-actions { display: flex; align-items: center; gap: 10px; }
+    .icon-button, .button {
+      border: 1px solid var(--line); border-radius: 9px; background: white; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: .15s ease;
+    }
+    .icon-button { width: 38px; height: 38px; color: #6e766c; font-size: 16px; }
+    .button { min-height: 38px; padding: 0 14px; font-weight: 600; font-size: 12px; }
+    .button:hover, .icon-button:hover { border-color: #b6c3b4; transform: translateY(-1px); }
+    .button.primary { background: var(--green); color: white; border-color: var(--green); }
+    .button.primary:hover { background: #284b37; }
+    .button.soft { background: var(--green-2); border-color: transparent; color: var(--green); }
+    .button.small { min-height: 32px; padding: 0 11px; font-size: 11px; }
+    .hero { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; margin-bottom: 23px; }
+    .eyebrow { color: #778477; font-size: 10px; text-transform: uppercase; letter-spacing: .14em; font-weight: 700; margin-bottom: 9px; }
+    h1 { font: 500 clamp(26px, 3vw, 36px) Georgia, serif; letter-spacing: -.6px; margin: 0; }
+    .hero-sub { color: var(--muted); margin: 8px 0 0; font-size: 13px; }
+    .hero-buttons { display: flex; gap: 9px; }
+    .view { display: none; }
+    .view.active { display: block; }
+    .grid { display: grid; gap: 16px; }
+    .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 16px; }
+    .card { background: var(--paper); border: 1px solid #eeeee8; border-radius: 14px; box-shadow: var(--shadow); }
+    .stat-card { padding: 17px 18px; min-height: 111px; }
+    .stat-label { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; }
+    .stat-emoji { font-size: 15px; }
+    .stat-value { font: 500 25px Georgia, serif; margin-top: 12px; }
+    .stat-foot { margin-top: 4px; color: #879084; font-size: 10px; }
+    .dashboard-grid { grid-template-columns: minmax(0, 1.65fr) minmax(275px, .95fr); align-items: start; }
+    .stack { display: grid; gap: 16px; min-width: 0; }
+    .card-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 18px 20px 13px; }
+    .card-title { font: 500 17px Georgia, serif; margin: 0; }
+    .card-subtitle { color: var(--muted); font-size: 11px; margin-top: 4px; }
+    .text-button { color: var(--green); border: 0; background: none; font-weight: 650; font-size: 11px; cursor: pointer; padding: 5px; }
+    .budget-card { padding-bottom: 18px; }
+    .budget-main { padding: 3px 20px 0; display: flex; align-items: baseline; gap: 8px; }
+    .budget-spent { font: 500 30px Georgia, serif; }
+    .budget-total { color: var(--muted); font-size: 12px; }
+    .progress { height: 7px; background: #eff0ea; border-radius: 10px; overflow: hidden; margin: 12px 20px 15px; }
+    .progress-fill { width: 0; height: 100%; background: var(--green); border-radius: inherit; transition: width .25s ease; }
+    .category-list { padding: 0 20px; display: grid; gap: 11px; }
+    .category-row { display: grid; grid-template-columns: 9px minmax(70px, 1fr) auto; align-items: center; gap: 8px; font-size: 11px; }
+    .category-dot { width: 7px; height: 7px; border-radius: 50%; }
+    .category-name { color: #6e756b; }
+    .category-amount { font-weight: 600; }
+    .category-track { grid-column: 2 / 4; height: 4px; background: #f1f1ec; border-radius: 5px; margin-top: -3px; overflow: hidden; }
+    .category-track span { display: block; height: 100%; border-radius: inherit; }
+    .event-details { padding: 0 20px 18px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .pill { border: 1px solid var(--line); padding: 6px 9px; border-radius: 7px; color: #697267; font-size: 10px; }
+    .countdown { margin: 0 20px 18px; border-radius: 11px; padding: 13px 15px; background: #f8f6f1; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .countdown-label { color: var(--muted); font-size: 11px; }
+    .countdown-value { font: 500 20px Georgia, serif; }
+    .timeline-mini { padding: 0 20px 20px; }
+    .timeline-item { display: grid; grid-template-columns: 20px 1fr auto; gap: 10px; padding-bottom: 13px; position: relative; }
+    .timeline-item:not(:last-child)::after { content: ""; width: 1px; background: #e6e9e2; position: absolute; left: 9px; top: 19px; bottom: -1px; }
+    .timeline-dot { width: 19px; height: 19px; border: 1px solid #dfe5dc; background: white; border-radius: 50%; display: grid; place-items: center; color: var(--green); font-size: 10px; z-index: 1; }
+    .timeline-item.done .timeline-dot { background: var(--green); color: white; border-color: var(--green); }
+    .timeline-name { font-size: 11px; font-weight: 600; }
+    .timeline-note { margin-top: 3px; color: var(--muted); font-size: 10px; }
+    .timeline-date { font-size: 10px; color: var(--muted); white-space: nowrap; padding-top: 3px; }
+    .assistant-card { overflow: hidden; background: #f1f3ed; border-color: #e9ece5; box-shadow: none; }
+    .assistant-head { padding: 19px 19px 10px; display: flex; align-items: center; gap: 10px; }
+    .sparkle { display: grid; place-items: center; background: var(--green); color: white; width: 31px; height: 31px; border-radius: 10px; font-size: 15px; }
+    .assistant-head .card-title { font-size: 16px; }
+    .ai-badge { margin-left: auto; border-radius: 20px; padding: 5px 8px; background: #e2e8de; color: #5e725d; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+    .assistant-intro { padding: 0 19px 12px; color: #687365; font-size: 11px; line-height: 1.55; }
+    .chat-messages { display: grid; gap: 9px; padding: 0 14px 12px; max-height: 285px; overflow-y: auto; }
+    .message { width: fit-content; max-width: 94%; padding: 10px 11px; border-radius: 10px 10px 10px 3px; background: white; color: #555f54; font-size: 11px; line-height: 1.55; white-space: pre-wrap; }
+    .message.user { margin-left: auto; color: white; background: var(--green); border-radius: 10px 10px 3px 10px; }
+    .chat-form { display: flex; gap: 7px; padding: 0 14px 14px; }
+    .chat-input { flex: 1; min-width: 0; border: 1px solid #e5e8e0; border-radius: 9px; background: white; padding: 10px; font-size: 11px; }
+    .send-button { border: 0; border-radius: 9px; background: var(--green); color: white; width: 38px; cursor: pointer; font-size: 15px; }
+    .suggestions { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 13px; }
+    .suggestion { border: 1px solid #dfe5db; background: transparent; border-radius: 20px; padding: 6px 9px; color: #647261; font-size: 10px; cursor: pointer; }
+    .suggestion:hover { background: white; }
+    .idea-card { padding: 17px; background: #fffaf5; border-color: #f3ece3; }
+    .idea-label { color: #aa7a58; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; }
+    .idea-title { font: 500 17px Georgia, serif; margin: 8px 0 5px; }
+    .idea-copy { color: #7f766c; font-size: 11px; line-height: 1.55; margin: 0; }
+    .section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin: 4px 0 18px; }
+    .section-heading h2 { font: 500 24px Georgia, serif; margin: 0; }
+    .section-heading p { color: var(--muted); margin: 6px 0 0; font-size: 12px; }
+    .toolbar { display: flex; gap: 8px; align-items: center; }
+    .input, .select {
+      border: 1px solid var(--line); background: white; border-radius: 8px; min-height: 37px;
+      padding: 0 10px; color: var(--ink); font-size: 12px;
+    }
+    .budget-layout { grid-template-columns: minmax(0, 1.5fr) minmax(260px, .8fr); align-items: start; }
+    .table-wrap { overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; }
+    th { text-align: left; color: #8a9087; text-transform: uppercase; letter-spacing: .08em; font-size: 9px; font-weight: 700; padding: 12px 17px; border-bottom: 1px solid var(--line); }
+    td { padding: 13px 17px; border-bottom: 1px solid #f0f0eb; font-size: 11px; }
+    tr:last-child td { border-bottom: 0; }
+    .table-category { display: flex; align-items: center; gap: 9px; font-weight: 600; }
+    .table-category .category-dot { width: 8px; height: 8px; }
+    .amount-input { width: 90px; border: 1px solid transparent; background: transparent; text-align: right; padding: 6px; border-radius: 6px; font-size: 11px; }
+    .amount-input:hover, .amount-input:focus { border-color: var(--line); background: white; }
+    .muted { color: var(--muted); }
+    .budget-summary { padding: 20px; }
+    .summary-total { margin: 5px 0 17px; font: 500 30px Georgia, serif; }
+    .summary-line { display: flex; justify-content: space-between; padding: 10px 0; border-top: 1px solid var(--line); color: #737b70; font-size: 11px; }
+    .summary-line strong { color: var(--ink); }
+    .checklist-grid { grid-template-columns: minmax(0, 1.25fr) minmax(260px, .75fr); align-items: start; }
+    .filter-row { display: flex; gap: 7px; padding: 0 18px 13px; flex-wrap: wrap; }
+    .filter-chip { border: 1px solid var(--line); background: white; color: #7c8379; border-radius: 20px; padding: 6px 10px; font-size: 10px; cursor: pointer; }
+    .filter-chip.active { color: var(--green); background: var(--green-2); border-color: transparent; }
+    .check-list { padding: 0 18px 14px; }
+    .check-row { display: flex; gap: 11px; align-items: flex-start; padding: 12px 0; border-top: 1px solid #f0f0eb; }
+    .check-row input { accent-color: var(--green); margin: 2px 0 0; width: 15px; height: 15px; cursor: pointer; }
+    .check-content { min-width: 0; flex: 1; }
+    .check-name { font-weight: 600; font-size: 11px; }
+    .check-row.completed .check-name { color: #a0a59d; text-decoration: line-through; }
+    .check-meta { display: flex; align-items: center; gap: 8px; margin-top: 5px; color: var(--muted); font-size: 10px; }
+    .tag { padding: 3px 6px; border-radius: 5px; background: #f2f2ed; color: #6f766b; font-size: 9px; }
+    .tag.urgent { background: #f9eae4; color: #b56b4a; }
+    .delete-button { border: 0; background: none; color: #a7aaa2; cursor: pointer; padding: 2px 5px; font-size: 15px; }
+    .add-task { display: flex; gap: 7px; padding: 0 18px 17px; }
+    .add-task input { flex: 1; min-width: 0; }
+    .vendor-card { padding-bottom: 5px; }
+    .vendor-row { margin: 0 18px; padding: 13px 0; border-top: 1px solid #f0f0eb; display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 10px; }
+    .vendor-icon { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: #f3eee6; font-size: 15px; }
+    .vendor-name { font-size: 11px; font-weight: 650; }
+    .vendor-status { margin-top: 4px; color: var(--muted); font-size: 10px; }
+    .status-dot { display: inline-block; vertical-align: 1px; width: 6px; height: 6px; border-radius: 50%; background: #dfa46e; margin-right: 4px; }
+    .status-dot.booked { background: #6d9474; }
+    .vendor-add { margin: 9px 18px 14px; }
+    .timeline-layout { grid-template-columns: minmax(0, 1.3fr) minmax(260px, .7fr); align-items: start; }
+    .timeline-full { padding: 0 22px 10px; }
+    .timeline-full .timeline-item { grid-template-columns: 26px 1fr auto; gap: 12px; padding: 15px 0; border-bottom: 1px solid #f0f0eb; }
+    .timeline-full .timeline-item::after { left: 12px; top: 34px; bottom: -15px; }
+    .timeline-full .timeline-item:last-child { border-bottom: 0; }
+    .timeline-full .timeline-dot { width: 25px; height: 25px; }
+    .timeline-full .timeline-name { font-size: 12px; }
+    .timeline-full .timeline-note { font-size: 10px; }
+    .timeline-date-input { border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--muted); font-size: 10px; padding: 5px; }
+    .ideas-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .idea-tile { padding: 18px; min-height: 165px; }
+    .idea-tile-icon { font-size: 22px; margin-bottom: 12px; }
+    .idea-tile h3 { font: 500 17px Georgia, serif; margin: 0 0 8px; }
+    .idea-tile p { color: #7b8278; font-size: 11px; line-height: 1.6; margin: 0; }
+    .idea-tile .tag { display: inline-block; margin-top: 12px; }
+    .ideas-note { margin-top: 16px; padding: 14px 16px; background: var(--green-2); border-radius: 11px; color: #566a55; font-size: 11px; line-height: 1.55; }
+    .modal-backdrop { position: fixed; inset: 0; z-index: 5; background: rgba(25, 32, 26, .32); display: none; align-items: center; justify-content: center; padding: 18px; }
+    .modal-backdrop.open { display: flex; }
+    .modal { width: min(460px, 100%); background: white; border-radius: 16px; box-shadow: 0 22px 70px rgba(20, 30, 20, .2); padding: 23px; }
+    .modal h2 { font: 500 22px Georgia, serif; margin: 0; }
+    .modal p { color: var(--muted); font-size: 11px; line-height: 1.6; margin: 8px 0 19px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .field { display: grid; gap: 6px; }
+    .field.full { grid-column: 1 / -1; }
+    .field label { color: #777e74; font-size: 10px; font-weight: 650; }
+    .field .input, .field .select { width: 100%; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+    .notice { position: fixed; z-index: 10; bottom: 20px; left: 50%; transform: translate(-50%, 15px); opacity: 0; pointer-events: none; transition: .2s ease; background: #263d2d; color: white; border-radius: 8px; padding: 11px 15px; font-size: 11px; box-shadow: var(--shadow); }
+    .notice.show { opacity: 1; transform: translate(-50%, 0); }
+    .empty { color: var(--muted); font-size: 11px; padding: 16px 0; }
+    .mobile-menu { display: none; }
+
+    @media (max-width: 1050px) {
+      main { padding: 25px 26px 42px; }
+      .app { grid-template-columns: 215px minmax(0, 1fr); }
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .dashboard-grid { grid-template-columns: minmax(0, 1.3fr) minmax(250px, .9fr); }
+    }
+    @media (max-width: 760px) {
+      .app { display: block; }
+      .sidebar { position: fixed; z-index: 4; top: auto; bottom: 0; height: auto; width: 100%; padding: 7px 8px calc(7px + env(safe-area-inset-bottom)); border: 0; border-top: 1px solid var(--line); }
+      .brand, .workspace-label, .sidebar-bottom { display: none; }
+      .nav { display: flex; justify-content: space-around; gap: 2px; }
+      .nav-button { min-width: 56px; padding: 7px 8px; flex-direction: column; gap: 3px; font-size: 9px; }
+      .nav-icon { font-size: 16px; }
+      .nav-count { display: none; }
+      main { padding: 20px 16px 95px; }
+      .topbar { margin-bottom: 25px; }
+      .mobile-menu { display: inline-flex; }
+      .hero { align-items: flex-start; flex-direction: column; gap: 15px; }
+      .hero-buttons { width: 100%; }
+      .hero-buttons .button { flex: 1; }
+      .dashboard-grid, .budget-layout, .checklist-grid, .timeline-layout { grid-template-columns: 1fr; }
+      .ideas-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 430px) {
+      .stats { gap: 9px; }
+      .stat-card { padding: 13px; min-height: 100px; }
+      .stat-value { font-size: 21px; }
+      .top-actions .button { padding: 0 9px; }
+      .topbar { gap: 8px; }
+      .section-heading { align-items: flex-start; flex-direction: column; }
+      .ideas-grid { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      .field.full { grid-column: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">g</div>
+        <div><div class="brand-name">gather</div><div class="brand-tag">make it meaningful</div></div>
+      </div>
+      <div class="workspace-label">Your workspace</div>
+      <nav class="nav" aria-label="Main navigation">
+        <button class="nav-button active" data-view="overview"><span class="nav-icon">⌂</span>Overview</button>
+        <button class="nav-button" data-view="budget"><span class="nav-icon">◉</span>Budget<span class="nav-count" id="navBudget"></span></button>
+        <button class="nav-button" data-view="checklist"><span class="nav-icon">☷</span>Checklist<span class="nav-count" id="navChecklist"></span></button>
+        <button class="nav-button" data-view="timeline"><span class="nav-icon">◷</span>Timeline</button>
+        <button class="nav-button" data-view="ideas"><span class="nav-icon">✳</span>Ideas</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="side-event">
+          <div class="side-event-label">Currently planning</div>
+          <div class="side-event-name" id="sideEventName">Maya's Garden Wedding</div>
+          <div class="side-event-date" id="sideEventDate">June 14 · 2027</div>
+        </div>
+        <div class="profile">
+          <div class="avatar">M</div>
+          <div><div class="profile-name">My workspace</div><div class="profile-caption">Personal planner</div></div>
+        </div>
+      </div>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <div class="breadcrumb"><button class="icon-button mobile-menu" aria-label="Open overview" data-nav="overview">☰</button> My events <span aria-hidden="true">/</span> <strong id="crumbName">Maya's Garden Wedding</strong></div>
+        <div class="top-actions">
+          <button class="icon-button" id="aiSettingsButton" title="Configure AI" aria-label="Configure AI">✳</button>
+          <button class="button" id="editEventButton">✎ <span>Edit event</span></button>
+          <button class="button primary" id="newEventButton">＋ <span>New event</span></button>
+        </div>
+      </header>
+
+      <section class="view active" id="view-overview">
+        <div class="hero">
+          <div><div class="eyebrow" id="eventEyebrow">YOUR NEXT BIG MOMENT</div><h1 id="pageTitle">Maya's Garden Wedding</h1><p class="hero-sub" id="heroSubtitle">A little planning now, a lot more joy later.</p></div>
+          <div class="hero-buttons"><button class="button soft" data-nav="ideas">✳ Get inspired</button><button class="button primary" data-nav="checklist">View checklist <span aria-hidden="true">→</span></button></div>
+        </div>
+        <div class="grid stats">
+          <article class="card stat-card"><div class="stat-label">Days to go <span class="stat-emoji">🌿</span></div><div class="stat-value" id="daysStat">—</div><div class="stat-foot" id="dateStatFoot">Until the big day</div></article>
+          <article class="card stat-card"><div class="stat-label">Budget remaining <span class="stat-emoji">◎</span></div><div class="stat-value" id="remainingStat">$0</div><div class="stat-foot" id="budgetStatFoot">of your total budget</div></article>
+          <article class="card stat-card"><div class="stat-label">Things checked off <span class="stat-emoji">☑</span></div><div class="stat-value" id="tasksStat">0 / 0</div><div class="stat-foot">You're making lovely progress</div></article>
+          <article class="card stat-card"><div class="stat-label">Vendors booked <span class="stat-emoji">✳</span></div><div class="stat-value" id="vendorsStat">0 / 0</div><div class="stat-foot">Your dream team is coming together</div></article>
+        </div>
+        <div class="grid dashboard-grid">
+          <div class="stack">
+            <article class="card budget-card">
+              <div class="card-head"><div><h2 class="card-title">Budget at a glance</h2><div class="card-subtitle">A thoughtful plan for every dollar</div></div><button class="text-button" data-nav="budget">See details →</button></div>
+              <div class="budget-main"><span class="budget-spent" id="spentAmount">$0</span><span class="budget-total">of <span id="totalAmount">$0</span></span></div>
+              <div class="progress"><div class="progress-fill" id="budgetProgress"></div></div>
+              <div class="category-list" id="categoryList"></div>
+            </article>
+            <article class="card">
+              <div class="card-head"><div><h2 class="card-title">Coming up next</h2><div class="card-subtitle">One step at a time</div></div><button class="text-button" data-nav="timeline">Full timeline →</button></div>
+              <div class="timeline-mini" id="upcomingTimeline"></div>
+            </article>
+          </div>
+          <div class="stack">
+            <article class="card assistant-card">
+              <div class="assistant-head"><div class="sparkle">✳</div><div><h2 class="card-title">Your planning pal</h2><div class="card-subtitle">Here for the little details</div></div><span class="ai-badge" id="aiModeBadge">Local mode</span></div>
+              <div class="assistant-intro">Ask for ideas, a sensible budget split, or help making your next decision.</div>
+              <div class="chat-messages" id="chatMessages" aria-live="polite">
+                <div class="message">Hi! I’m here to make planning feel lighter. What are you working on today?</div>
+              </div>
+              <form class="chat-form" id="chatForm"><input class="chat-input" id="chatInput" placeholder="Ask your planning pal..." autocomplete="off" aria-label="Message your planning assistant"><button class="send-button" aria-label="Send message">↑</button></form>
+              <div class="suggestions"><button class="suggestion" data-prompt="Give me three personal theme ideas">Theme ideas</button><button class="suggestion" data-prompt="Help me plan my budget">Budget help</button><button class="suggestion" data-prompt="What should I do next?">What's next?</button></div>
+            </article>
+            <article class="card idea-card"><div class="idea-label">A little inspiration</div><h3 class="idea-title" id="spotlightTitle">A note to your future selves</h3><p class="idea-copy" id="spotlightCopy">Leave a stack of postcards for guests to write a wish or a favorite memory. Read them together on your first anniversary.</p><button class="text-button" style="padding:10px 0 0" data-nav="ideas">Explore more ideas →</button></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="view-budget">
+        <div class="section-heading"><div><div class="eyebrow">THE MONEY, MADE SIMPLE</div><h2>Your event budget</h2><p>Keep the big picture in view and adjust estimates as you go.</p></div><div class="toolbar"><button class="button" id="editBudgetButton">✎ Edit total budget</button></div></div>
+        <div class="grid budget-layout">
+          <article class="card">
+            <div class="card-head"><div><h2 class="card-title">Category breakdown</h2><div class="card-subtitle">Update estimates inline as plans take shape</div></div><button class="button small soft" id="addCategoryButton">＋ Add category</button></div>
+            <div class="table-wrap"><table><thead><tr><th>Category</th><th>Planned</th><th>Spent</th><th>Remaining</th></tr></thead><tbody id="budgetTable"></tbody></table></div>
+          </article>
+          <article class="card budget-summary"><div class="eyebrow">YOUR OVERVIEW</div><div class="summary-total" id="summaryTotal">$0</div><div class="summary-line"><span>Estimated spend</span><strong id="summarySpent">$0</strong></div><div class="summary-line"><span>Still available</span><strong id="summaryLeft">$0</strong></div><div class="summary-line"><span>Budget used</span><strong id="summaryPercent">0%</strong></div><div class="ideas-note" style="margin-top:17px">A little breathing room is a good thing. Consider keeping 5–10% aside for last-minute surprises.</div></article>
+        </div>
+      </section>
+
+      <section class="view" id="view-checklist">
+        <div class="section-heading"><div><div class="eyebrow">ALL THE LITTLE THINGS</div><h2>Your checklist</h2><p>Make progress at your own pace. Every checked box is a win.</p></div><button class="button primary" id="focusAddTask">＋ Add a task</button></div>
+        <div class="grid checklist-grid">
+          <article class="card">
+            <div class="card-head"><div><h2 class="card-title">Planning tasks</h2><div class="card-subtitle" id="checklistSubtitle"></div></div></div>
+            <div class="filter-row"><button class="filter-chip active" data-filter="all">All tasks</button><button class="filter-chip" data-filter="open">To do</button><button class="filter-chip" data-filter="done">Completed</button></div>
+            <div class="check-list" id="checkList"></div>
+            <form class="add-task" id="addTaskForm"><input class="input" id="taskInput" placeholder="Add something to your list..." aria-label="New task"><button class="button primary small">Add</button></form>
+          </article>
+          <article class="card vendor-card"><div class="card-head"><div><h2 class="card-title">Vendor checklist</h2><div class="card-subtitle">People who make it all happen</div></div></div><div id="vendorList"></div><button class="button small vendor-add" id="addVendorButton">＋ Add a vendor</button></article>
+        </div>
+      </section>
+
+      <section class="view" id="view-timeline">
+        <div class="section-heading"><div><div class="eyebrow">A GENTLE COUNTDOWN</div><h2>Event timeline</h2><p>Milestones to help your celebration come together, without the rush.</p></div><button class="button" id="addMilestoneButton">＋ Add milestone</button></div>
+        <div class="grid timeline-layout"><article class="card"><div class="card-head"><div><h2 class="card-title">Your milestones</h2><div class="card-subtitle">Check off each moment as it happens</div></div></div><div class="timeline-full" id="fullTimeline"></div></article>
+        <article class="card budget-summary"><div class="eyebrow">THE BIG DAY</div><div class="summary-total" id="timelineDays">—</div><div class="summary-line"><span>Date</span><strong id="timelineDate"></strong></div><div class="summary-line"><span>Guest count</span><strong id="timelineGuests"></strong></div><div class="ideas-note" id="timelineNudge">You don't need to do it all today. Choose one small next step.</div></article></div>
+      </section>
+
+      <section class="view" id="view-ideas">
+        <div class="section-heading"><div><div class="eyebrow">MADE FOR YOUR MOMENT</div><h2>Ideas with a little heart</h2><p id="ideasSubtitle">Thoughtful touches, tailored to your celebration.</p></div><button class="button primary" id="refreshIdeas">✳ Shuffle ideas</button></div>
+        <div class="grid ideas-grid" id="ideasGrid"></div>
+        <div class="ideas-note" id="ideasFooter">Share what matters most to you with your planning pal for even more personal ideas.</div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="eventModal" role="dialog" aria-modal="true" aria-labelledby="eventModalTitle">
+    <form class="modal" id="eventForm">
+      <h2 id="eventModalTitle">Tell us about your event</h2><p>A few details help us make your plan feel more like you. You can change these anytime.</p>
+      <div class="form-grid">
+        <div class="field full"><label for="eventNameInput">Event name</label><input class="input" id="eventNameInput" required maxlength="70"></div>
+        <div class="field"><label for="eventTypeInput">Celebration</label><select class="select" id="eventTypeInput"><option>Wedding</option><option>Birthday</option><option>Community event</option><option>Other celebration</option></select></div>
+        <div class="field"><label for="eventDateInput">Date</label><input class="input" type="date" id="eventDateInput"></div>
+        <div class="field"><label for="eventGuestsInput">Guest count</label><input class="input" type="number" id="eventGuestsInput" min="1" max="100000"></div>
+        <div class="field"><label for="eventLocationInput">Location</label><input class="input" id="eventLocationInput" maxlength="80" placeholder="City or venue"></div>
+        <div class="field"><label for="eventStyleInput">Vibe or style</label><input class="input" id="eventStyleInput" maxlength="100" placeholder="e.g. garden, cozy, joyful"></div>
+        <div class="field"><label for="eventCurrencyInput">Currency symbol</label><input class="input" id="eventCurrencyInput" maxlength="3" placeholder="$"></div>
+      </div>
+      <div class="modal-actions"><button type="button" class="button" data-close="eventModal">Cancel</button><button class="button primary">Save event</button></div>
+    </form>
+  </div>
+
+  <div class="modal-backdrop" id="budgetModal" role="dialog" aria-modal="true" aria-labelledby="budgetModalTitle">
+    <form class="modal" id="budgetForm"><h2 id="budgetModalTitle">Set your total budget</h2><p>Choose an amount that feels comfortable. You can adjust it as plans come together.</p><div class="field"><label for="budgetTotalInput">Total budget</label><input class="input" type="number" min="0" step="100" id="budgetTotalInput" required></div><div class="modal-actions"><button type="button" class="button" data-close="budgetModal">Cancel</button><button class="button primary">Save budget</button></div></form>
+  </div>
+
+  <div class="modal-backdrop" id="aiModal" role="dialog" aria-modal="true" aria-labelledby="aiModalTitle">
+    <form class="modal" id="aiForm"><h2 id="aiModalTitle">Connect your AI provider</h2><p>Optional: connect an OpenAI-compatible chat endpoint for generated ideas and planning help. Your key stays in this tab only and is sent only to the endpoint you enter. Don't use a key you aren't comfortable sending from your browser.</p>
+      <div class="form-grid">
+        <div class="field full"><label for="aiEndpointInput">Chat completions endpoint</label><input class="input" type="url" id="aiEndpointInput" placeholder="https://api.openai.com/v1/chat/completions"></div>
+        <div class="field full"><label for="aiModelInput">Model</label><input class="input" id="aiModelInput" placeholder="gpt-4o-mini" required></div>
+        <div class="field full"><label for="aiKeyInput">API key (kept in memory only)</label><input class="input" type="password" id="aiKeyInput" autocomplete="off" placeholder="Paste your provider key"></div>
+      </div>
+      <div class="modal-actions"><button type="button" class="button" id="disconnectAiButton">Use local mode</button><button type="button" class="button" data-close="aiModal">Cancel</button><button class="button primary">Connect</button></div>
+    </form>
+  </div>
+  <div class="notice" id="notice" role="status"></div>
+
+  <script>
+    (() => {
+      "use strict";
+      const STORAGE_KEY = "gather-planner-v1";
+      const colors = ["#77977a", "#dda273", "#a9a0c3", "#d18b83", "#87aeb0", "#c5ad70"];
+      const currencyFmt = (amount, symbol) => `${symbol || "$"}${Number(amount || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+      const dateFmt = (value, options = { month: "long", day: "numeric", year: "numeric" }) => {
+        if (!value) return "Choose a date";
+        const date = new Date(`${value}T12:00:00`);
+        return Number.isNaN(date.getTime()) ? "Choose a date" : new Intl.DateTimeFormat(undefined, options).format(date);
+      };
+      const daysUntil = value => {
+        if (!value) return null;
+        const target = new Date(`${value}T00:00:00`);
+        if (Number.isNaN(target.getTime())) return null;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return Math.ceil((target - today) / 86400000);
+      };
+
+      const defaultState = {
+        event: { name: "Maya's Garden Wedding", type: "Wedding", date: "2027-06-14", guests: 85, location: "Portland, OR", style: "garden, relaxed, personal", currency: "$" },
+        budget: { total: 24000, categories: [
+          { name: "Venue & rentals", planned: 6500, spent: 1800 },
+          { name: "Food & drinks", planned: 6200, spent: 0 },
+          { name: "Photography", planned: 2800, spent: 700 },
+          { name: "Flowers & decor", planned: 2100, spent: 420 },
+          { name: "Music & entertainment", planned: 1800, spent: 0 },
+          { name: "Attire & beauty", planned: 1900, spent: 350 },
+          { name: "Other & just-in-case", planned: 2700, spent: 0 }
+        ] },
+        tasks: [
+          { name: "Book your ceremony and reception space", category: "Venue", due: "2026-12-01", done: true },
+          { name: "Choose your photographer", category: "Vendors", due: "2027-01-15", done: false },
+          { name: "Start your guest list", category: "Guests", due: "2027-02-01", done: false },
+          { name: "Send save-the-dates", category: "Guests", due: "2027-02-14", done: false },
+          { name: "Taste the menu with your caterer", category: "Food", due: "2027-04-15", done: false },
+          { name: "Pick your flowers and finishing touches", category: "Details", due: "2027-05-01", done: false }
+        ],
+        vendors: [
+          { name: "Venue", type: "Ceremony & reception", icon: "⌂", booked: true },
+          { name: "Photographer", type: "Photo & video", icon: "◎", booked: false },
+          { name: "Caterer", type: "Food & drinks", icon: "♨", booked: false },
+          { name: "Florist", type: "Flowers & decor", icon: "✿", booked: false },
+          { name: "Music", type: "DJ or live music", icon: "♫", booked: false }
+        ],
+        milestones: [
+          { name: "Set a budget that feels right", note: "Decide what matters most and where you'd like to splurge.", date: "2026-11-15", done: true },
+          { name: "Book your venue", note: "A date and a place make everything else feel real.", date: "2026-12-01", done: true },
+          { name: "Choose your key vendors", note: "Photographer, food, and music are lovely places to start.", date: "2027-01-15", done: false },
+          { name: "Send invitations", note: "Give your favorite people plenty of time to plan.", date: "2027-03-14", done: false },
+          { name: "Confirm the little details", note: "Final headcount, seating, and day-of schedule.", date: "2027-05-14", done: false },
+          { name: "Your celebration day", note: "Take a breath, look around, and enjoy it.", date: "2027-06-14", done: false }
+        ]
+      };
+
+      const $ = id => document.getElementById(id);
+      const clone = value => JSON.parse(JSON.stringify(value));
+      let state = loadState();
+      let activeFilter = "all";
+      let aiConfig = null;
+      let ideaOffset = 0;
+      let noticeTimer;
+
+      function loadState() {
+        try {
+          const stored = localStorage.getItem(STORAGE_KEY);
+          if (!stored) return clone(defaultState);
+          const parsed = JSON.parse(stored);
+          return {
+            ...clone(defaultState), ...parsed,
+            event: { ...clone(defaultState.event), ...parsed.event },
+            budget: { ...clone(defaultState.budget), ...parsed.budget },
+            tasks: Array.isArray(parsed.tasks) ? parsed.tasks : clone(defaultState.tasks),
+            vendors: Array.isArray(parsed.vendors) ? parsed.vendors : clone(defaultState.vendors),
+            milestones: Array.isArray(parsed.milestones) ? parsed.milestones : clone(defaultState.milestones)
+          };
+        } catch (error) {
+          console.error("Could not load the saved event plan.", error);
+          return clone(defaultState);
+        }
+      }
+
+      function saveState() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch (error) {
+          console.error("Could not save the event plan.", error);
+          showNotice("Couldn't save changes in this browser.");
+        }
+      }
+
+      function totalSpent() { return state.budget.categories.reduce((sum, item) => sum + Number(item.spent || 0), 0); }
+      function remainingBudget() { return Number(state.budget.total || 0) - totalSpent(); }
+      function setText(id, value) { $(id).textContent = value; }
+      function showNotice(message) {
+        const notice = $("notice");
+        notice.textContent = message;
+        notice.classList.add("show");
+        clearTimeout(noticeTimer);
+        noticeTimer = setTimeout(() => notice.classList.remove("show"), 2600);
+      }
+      function safeDateShort(value) {
+        return dateFmt(value, { month: "short", day: "numeric" });
+      }
+      function typeIcon(type) {
+        if (/birthday/i.test(type)) return "🎂";
+        if (/community/i.test(type)) return "🌱";
+        return "💐";
+      }
+
+      function render() {
+        const { event, budget } = state;
+        setText("pageTitle", event.name);
+        setText("crumbName", event.name);
+        setText("sideEventName", event.name);
+        setText("sideEventDate", dateFmt(event.date, { month: "long", day: "numeric", year: "numeric" }));
+        setText("eventEyebrow", `${typeIcon(event.type)}  ${event.type.toUpperCase()} PLAN`);
+        setText("heroSubtitle", event.location ? `${event.location} · ${event.guests || "Guest count"} guests · A little planning now, a lot more joy later.` : "A little planning now, a lot more joy later.");
+        const days = daysUntil(event.date);
+        setText("daysStat", days === null ? "—" : days < 0 ? "It's here!" : String(days));
+        setText("dateStatFoot", days === null ? "Add your event date" : days < 0 ? "Hope it was wonderful" : "Until the big day");
+        setText("remainingStat", currencyFmt(remainingBudget(), event.currency));
+        setText("budgetStatFoot", `of ${currencyFmt(budget.total, event.currency)} total budget`);
+        setText("tasksStat", `${state.tasks.filter(task => task.done).length} / ${state.tasks.length}`);
+        setText("vendorsStat", `${state.vendors.filter(vendor => vendor.booked).length} / ${state.vendors.length}`);
+        setText("spentAmount", currencyFmt(totalSpent(), event.currency));
+        setText("totalAmount", currencyFmt(budget.total, event.currency));
+        const percent = budget.total > 0 ? totalSpent() / budget.total * 100 : 0;
+        $("budgetProgress").style.width = `${Math.min(100, Math.max(0, percent))}%`;
+        setText("navBudget", "");
+        setText("navChecklist", String(state.tasks.filter(task => !task.done).length));
+        renderCategoryList();
+        renderBudgetTable();
+        renderTasks();
+        renderVendors();
+        renderTimeline();
+        renderIdeas();
+        setText("aiModeBadge", aiConfig ? "AI connected" : "Local mode");
+        $("spotlightTitle").textContent = /birthday/i.test(event.type) ? "A year of little joys" : /community/i.test(event.type) ? "A neighborhood story wall" : "A note to your future selves";
+        $("spotlightCopy").textContent = /birthday/i.test(event.type)
+          ? "Ask guests to write one thing they hope you get to do this year. Fold the notes into a jar and open one whenever you need a little inspiration."
+          : /community/i.test(event.type)
+            ? "Invite everyone to add a note, photo, or small drawing to a shared story wall. It becomes a sweet snapshot of what your community cares about."
+            : "Leave a stack of postcards for guests to write a wish or a favorite memory. Read them together on your first anniversary.";
+      }
+
+      function renderCategoryList() {
+        const container = $("categoryList");
+        container.replaceChildren();
+        state.budget.categories.slice(0, 5).forEach((item, index) => {
+          const row = document.createElement("div");
+          row.className = "category-row";
+          const dot = document.createElement("span");
+          dot.className = "category-dot";
+          dot.style.backgroundColor = colors[index % colors.length];
+          const name = document.createElement("span");
+          name.className = "category-name";
+          name.textContent = item.name;
+          const amount = document.createElement("span");
+          amount.className = "category-amount";
+          amount.textContent = currencyFmt(item.planned, state.event.currency);
+          const track = document.createElement("div");
+          track.className = "category-track";
+          const fill = document.createElement("span");
+          fill.style.width = `${budgetShare(item.planned)}%`;
+          fill.style.backgroundColor = colors[index % colors.length];
+          track.append(fill);
+          row.append(dot, name, amount, track);
+          container.append(row);
+        });
+      }
+
+      function budgetShare(value) {
+        return state.budget.total > 0 ? Math.min(100, Math.max(0, Number(value || 0) / state.budget.total * 100)) : 0;
+      }
+
+      function renderBudgetTable() {
+        const tbody = $("budgetTable");
+        tbody.replaceChildren();
+        state.budget.categories.forEach((item, index) => {
+          const tr = document.createElement("tr");
+          const category = document.createElement("td");
+          category.innerHTML = `<span class="table-category"><span class="category-dot" style="background:${colors[index % colors.length]}"></span></span>`;
+          category.querySelector(".table-category").append(document.createTextNode(item.name));
+          const plannedCell = document.createElement("td");
+          plannedCell.append(makeAmountInput("planned", index, item.planned));
+          const spentCell = document.createElement("td");
+          spentCell.append(makeAmountInput("spent", index, item.spent));
+          const remainingCell = document.createElement("td");
+          remainingCell.className = "muted";
+          remainingCell.textContent = currencyFmt(Number(item.planned || 0) - Number(item.spent || 0), state.event.currency);
+          tr.append(category, plannedCell, spentCell, remainingCell);
+          tbody.append(tr);
+        });
+      }
+
+      function makeAmountInput(field, index, value) {
+        const input = document.createElement("input");
+        input.className = "amount-input";
+        input.type = "number";
+        input.min = "0";
+        input.step = "50";
+        input.value = Number(value || 0);
+        input.setAttribute("aria-label", `${state.budget.categories[index].name} ${field}`);
+        input.addEventListener("change", () => {
+          state.budget.categories[index][field] = Math.max(0, Number(input.value) || 0);
+          saveState();
+          render();
+        });
+        return input;
+      }
+
+      function renderTasks() {
+        const container = $("checkList");
+        const filtered = state.tasks.filter(task => activeFilter === "all" || (activeFilter === "done" ? task.done : !task.done));
+        container.replaceChildren();
+        setText("checklistSubtitle", `${state.tasks.filter(task => task.done).length} of ${state.tasks.length} tasks complete`);
+        if (!filtered.length) {
+          const empty = document.createElement("div");
+          empty.className = "empty";
+          empty.textContent = activeFilter === "done" ? "No completed tasks just yet. Your first little win is waiting." : "All caught up! Add a task whenever something comes to mind.";
+          container.append(empty);
+        }
+        filtered.forEach(task => {
+          const index = state.tasks.indexOf(task);
+          const row = document.createElement("div");
+          row.className = `check-row${task.done ? " completed" : ""}`;
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.checked = Boolean(task.done);
+          checkbox.setAttribute("aria-label", `Mark ${task.name} ${task.done ? "incomplete" : "complete"}`);
+          checkbox.addEventListener("change", () => {
+            state.tasks[index].done = checkbox.checked;
+            saveState();
+            render();
+          });
+          const content = document.createElement("div");
+          content.className = "check-content";
+          const name = document.createElement("div");
+          name.className = "check-name";
+          name.textContent = task.name;
+          const meta = document.createElement("div");
+          meta.className = "check-meta";
+          const tag = document.createElement("span");
+          tag.className = "tag";
+          tag.textContent = task.category || "General";
+          meta.append(tag);
+          if (task.due) {
+            const due = document.createElement("span");
+            due.textContent = `Due ${safeDateShort(task.due)}`;
+            meta.append(due);
+          }
+          content.append(name, meta);
+          const remove = document.createElement("button");
+          remove.className = "delete-button";
+          remove.type = "button";
+          remove.textContent = "×";
+          remove.setAttribute("aria-label", `Remove ${task.name}`);
+          remove.addEventListener("click", () => {
+            state.tasks.splice(index, 1);
+            saveState();
+            render();
+          });
+          row.append(checkbox, content, remove);
+          container.append(row);
+        });
+      }
+
+      function renderVendors() {
+        const container = $("vendorList");
+        container.replaceChildren();
+        state.vendors.forEach((vendor, index) => {
+          const row = document.createElement("div");
+          row.className = "vendor-row";
+          const icon = document.createElement("div");
+          icon.className = "vendor-icon";
+          icon.textContent = vendor.icon || "✳";
+          const info = document.createElement("div");
+          const name = document.createElement("div");
+          name.className = "vendor-name";
+          name.textContent = vendor.name;
+          const status = document.createElement("div");
+          status.className = "vendor-status";
+          const dot = document.createElement("span");
+          dot.className = `status-dot${vendor.booked ? " booked" : ""}`;
+          status.append(dot, document.createTextNode(vendor.booked ? "Booked" : vendor.type || "To find"));
+          info.append(name, status);
+          const toggle = document.createElement("button");
+          toggle.className = "button small";
+          toggle.type = "button";
+          toggle.textContent = vendor.booked ? "Booked ✓" : "Mark booked";
+          toggle.setAttribute("aria-label", `${vendor.booked ? "Unbook" : "Mark booked"} ${vendor.name}`);
+          toggle.addEventListener("click", () => {
+            state.vendors[index].booked = !state.vendors[index].booked;
+            saveState();
+            render();
+          });
+          row.append(icon, info, toggle);
+          container.append(row);
+        });
+      }
+
+      function renderTimeline() {
+        const today = new Date();
+        const upcoming = state.milestones.filter(item => !item.done && (!item.date || new Date(`${item.date}T23:59:59`) >= today)).slice(0, 3);
+        const mini = $("upcomingTimeline");
+        mini.replaceChildren();
+        (upcoming.length ? upcoming : state.milestones.slice(-2)).forEach(item => mini.append(makeTimelineItem(item, false)));
+        const full = $("fullTimeline");
+        full.replaceChildren();
+        state.milestones.forEach((item, index) => full.append(makeTimelineItem(item, true, index)));
+        const days = daysUntil(state.event.date);
+        setText("timelineDays", days === null ? "Date to come" : days < 0 ? "It's here!" : `${days} days`);
+        setText("timelineDate", dateFmt(state.event.date));
+        setText("timelineGuests", `${Number(state.event.guests || 0).toLocaleString()} people`);
+        setText("timelineNudge", days !== null && days >= 0 && days < 30 ? "You're in the home stretch. Keep it simple, lean on your people, and remember what this day is really about." : "You don't need to do it all today. Choose one small next step.");
+      }
+
+      function makeTimelineItem(item, full, index = 0) {
+        const row = document.createElement("div");
+        row.className = `timeline-item${item.done ? " done" : ""}`;
+        const marker = document.createElement("button");
+        marker.className = "timeline-dot";
+        marker.type = "button";
+        marker.textContent = item.done ? "✓" : "";
+        marker.setAttribute("aria-label", `${item.done ? "Mark incomplete" : "Mark complete"}: ${item.name}`);
+        marker.addEventListener("click", () => {
+          const at = full ? index : state.milestones.indexOf(item);
+          state.milestones[at].done = !state.milestones[at].done;
+          saveState();
+          render();
+        });
+        const copy = document.createElement("div");
+        const name = document.createElement("div");
+        name.className = "timeline-name";
+        name.textContent = item.name;
+        const note = document.createElement("div");
+        note.className = "timeline-note";
+        note.textContent = item.note || "";
+        copy.append(name, note);
+        let date;
+        if (full) {
+          date = document.createElement("input");
+          date.type = "date";
+          date.className = "timeline-date-input";
+          date.value = item.date || "";
+          date.setAttribute("aria-label", `Date for ${item.name}`);
+          date.addEventListener("change", () => {
+            state.milestones[index].date = date.value;
+            saveState();
+            render();
+          });
+        } else {
+          date = document.createElement("span");
+          date.className = "timeline-date";
+          date.textContent = safeDateShort(item.date);
+        }
+        row.append(marker, copy, date);
+        return row;
+      }
+
+      function eventIdeas() {
+        const { type, style, guests, location } = state.event;
+        const styleText = style ? `, with a ${style} feel` : "";
+        const count = Number(guests || 0);
+        if (/birthday/i.test(type)) return [
+          { icon: "📸", title: "A living photo album", body: "Set out a few disposable cameras or a shared photo QR code. Collect candid moments from every corner of the party.", tag: "Memory-making" },
+          { icon: "🎵", title: "The birthday soundtrack", body: "Ask a few favorite people to add one song that reminds them of the guest of honor. Let the playlist tell its own story.", tag: "Personal touch" },
+          { icon: "🍰", title: "A taste of the year", body: "Serve a favorite treat from each decade or chapter of life. Label each one with a tiny story or memory.", tag: "Food & drink" },
+          { icon: "💌", title: "Open when… notes", body: "Invite guests to write a note for a future moment: a hard day, a new adventure, or next year's birthday.", tag: "Keepsake" },
+          { icon: "🌼", title: "Make it feel like them", body: `Choose two or three colors, favorite flowers, or nostalgic details that feel unmistakably theirs${styleText}.`, tag: "Decor" },
+          { icon: "🕯️", title: "A wish instead of a speech", body: "Give everyone a moment to share one hope or happy wish. It can be a quiet circle or a jar of notes to read later.", tag: "Gather together" }
+        ];
+        if (/community/i.test(type)) return [
+          { icon: "🗺️", title: "A map of our neighborhood", body: `Pin favorite local places, stories, and community resources on a shared map${location ? ` around ${location}` : ""}.`, tag: "Community stories" },
+          { icon: "🌱", title: "Plant something together", body: "Set up a seed-planting station or create a small shared garden. Everyone leaves with something growing.", tag: "Hands-on" },
+          { icon: "🎤", title: "Open mic, easy mode", body: "Invite neighbors to share a song, story, or thank-you in a relaxed five-minute open mic. Make joining optional.", tag: "Gather together" },
+          { icon: "🥗", title: "A table of shared favorites", body: "Invite people to bring a dish, recipe card, or snack connected to a story. Label ingredients for easy sharing.", tag: "Food & drink" },
+          { icon: "🧩", title: "A small-help board", body: "Let guests post skills, offers, or things they could use a hand with. A celebration can spark support that lasts.", tag: "Meaningful" },
+          { icon: "🎨", title: "Create a community keepsake", body: `Set out a collaborative art, quilt-square, or note-making activity that suits a group of about ${count || "your"} guests.`, tag: "Keepsake" }
+        ];
+        return [
+          { icon: "💌", title: "A note to your future selves", body: "Leave postcards for guests to write a wish or favorite memory. Open them together on your first anniversary.", tag: "Keepsake" },
+          { icon: "🌿", title: "A living place card", body: `Use little herb pots or seed packets as place cards${styleText}. Guests take home something that keeps growing.`, tag: "Thoughtful detail" },
+          { icon: "🎶", title: "Songs with a story", body: "Ask a few loved ones to pick one song that reminds them of you. Share the stories behind the playlist between courses.", tag: "Personal touch" },
+          { icon: "🧺", title: "A cozy welcome moment", body: `Offer a small welcome drink and a quiet place to settle in for your ${count || "guests"} guests${location ? ` in ${location}` : ""}.`, tag: "Guest comfort" },
+          { icon: "🍰", title: "A family recipe table", body: "Feature a dessert or treat made from a family recipe, with a little card sharing who first made it and why it matters.", tag: "Food & drink" },
+          { icon: "📷", title: "A frame-worthy guest book", body: "Invite guests to add a Polaroid, doodle, or one-line piece of advice. Keep the prompts light and the pens easy to find.", tag: "Memory-making" }
+        ];
+      }
+
+      function renderIdeas() {
+        const grid = $("ideasGrid");
+        grid.replaceChildren();
+        const ideas = eventIdeas();
+        setText("ideasSubtitle", `${state.event.type} ideas for ${state.event.guests || "your"} guests${state.event.style ? ` · ${state.event.style}` : ""}`);
+        ideas.forEach((idea, index) => {
+          const card = document.createElement("article");
+          card.className = "card idea-tile";
+          const icon = document.createElement("div");
+          icon.className = "idea-tile-icon";
+          icon.textContent = idea.icon;
+          const title = document.createElement("h3");
+          title.textContent = idea.title;
+          const body = document.createElement("p");
+          body.textContent = idea.body;
+          const tag = document.createElement("span");
+          tag.className = "tag";
+          tag.textContent = idea.tag;
+          card.append(icon, title, body, tag);
+          if (aiConfig) {
+            const save = document.createElement("button");
+            save.type = "button";
+            save.className = "text-button";
+            save.textContent = "Ask AI for a twist →";
+            save.addEventListener("click", () => sendPrompt(`Give me a more personal variation on this ${state.event.type} idea: ${idea.title}. Our style is ${state.event.style || "not specified"}.`));
+            card.append(save);
+          }
+          grid.append(card);
+        });
+        setText("ideasFooter", `Ideas are tailored to your ${state.event.type.toLowerCase()}${state.event.style ? ` and ${state.event.style} style` : ""}. Connect an AI provider for additional generated suggestions.`);
+      }
+
+      function navigate(viewName) {
+        document.querySelectorAll(".view").forEach(view => view.classList.toggle("active", view.id === `view-${viewName}`));
+        document.querySelectorAll(".nav-button").forEach(button => button.classList.toggle("active", button.dataset.view === viewName));
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      function openModal(id) {
+        $(id).classList.add("open");
+        const first = $(id).querySelector("input, select");
+        if (first) setTimeout(() => first.focus(), 0);
+      }
+      function closeModal(id) { $(id).classList.remove("open"); }
+      function openEventModal(isNew = false) {
+        $("eventModalTitle").textContent = isNew ? "Start a new event plan" : "Edit your event";
+        $("eventNameInput").value = isNew ? "" : state.event.name;
+        $("eventTypeInput").value = isNew ? "Wedding" : state.event.type;
+        $("eventDateInput").value = isNew ? "" : state.event.date;
+        $("eventGuestsInput").value = isNew ? "" : state.event.guests;
+        $("eventLocationInput").value = isNew ? "" : state.event.location;
+        $("eventStyleInput").value = isNew ? "" : state.event.style;
+        $("eventCurrencyInput").value = isNew ? (state.event.currency || "$") : state.event.currency;
+        $("eventForm").dataset.isNew = String(isNew);
+        openModal("eventModal");
+      }
+
+      function addTask(name) {
+        const clean = name.trim();
+        if (!clean) return;
+        state.tasks.push({ name: clean, category: "General", due: "", done: false });
+        saveState();
+        render();
+        showNotice("Task added to your list.");
+      }
+      function addMilestone(name) {
+        const clean = name.trim();
+        if (!clean) return;
+        state.milestones.push({ name: clean, note: "A little step toward your celebration.", date: "", done: false });
+        saveState();
+        render();
+        showNotice("Milestone added.");
+      }
+
+      function localAnswer(prompt) {
+        const lower = prompt.toLowerCase();
+        const eventName = state.event.name;
+        if (/budget|cost|spend|money|price/.test(lower)) {
+          const remaining = remainingBudget();
+          const categories = state.budget.categories.slice().sort((a, b) => Number(a.planned) - Number(b.planned));
+          const suggested = categories.slice(0, 3).map(item => item.name).join(", ");
+          return `For ${eventName}, you have ${currencyFmt(remaining, state.event.currency)} left from your ${currencyFmt(state.budget.total, state.event.currency)} plan. Start by deciding your top three priorities, then request quotes before putting down deposits. Your smallest planned categories are ${suggested || "still to be set"}. Keep a 5–10% cushion for the unexpected.`;
+        }
+        if (/next|checklist|what should|todo|to-do/.test(lower)) {
+          const next = state.tasks.find(task => !task.done);
+          return next ? `A good next step is: “${next.name}.” You have ${state.tasks.filter(task => !task.done).length} open tasks, so just focus on this one for now. Want to add another task?` : "Your checklist is clear — lovely work. Take a moment to enjoy that, then add a new task whenever you're ready.";
+        }
+        if (/theme|idea|inspir|activity|personal/.test(lower)) {
+          const picks = eventIdeas().slice(0, 3).map(item => `• ${item.title}: ${item.body}`).join("\n");
+          return `Here are a few ${state.event.type.toLowerCase()} ideas${state.event.style ? ` with a ${state.event.style} feel` : ""}:\n${picks}\n\nChoose the one that feels most like you; it doesn't need to be elaborate to be memorable.`;
+        }
+        if (/vendor|venue|photograph|cater|book/.test(lower)) {
+          const unbooked = state.vendors.filter(vendor => !vendor.booked).map(vendor => vendor.name);
+          return `For ${state.event.type.toLowerCase()} planning, start with the pieces that shape your date and guest experience. ${unbooked.length ? `Still on your vendor list: ${unbooked.join(", ")}.` : "Your vendor list is all marked booked!"} Ask about availability, what's included, cancellation terms, and payment dates before signing.`;
+        }
+        return `For ${state.event.name}, I'd start with what matters most to you and your guests${state.event.style ? ` — especially your ${state.event.style} style` : ""}. Is your question about budget, a timeline, vendors, or a personal touch?`;
+      }
+
+      function appendMessage(text, role) {
+        const message = document.createElement("div");
+        message.className = `message${role === "user" ? " user" : ""}`;
+        message.textContent = text;
+        $("chatMessages").append(message);
+        $("chatMessages").scrollTop = $("chatMessages").scrollHeight;
+      }
+
+      async function sendPrompt(prompt) {
+        const clean = prompt.trim();
+        if (!clean) return;
+        appendMessage(clean, "user");
+        $("chatInput").value = "";
+        const sendButton = $("chatForm").querySelector("button");
+        sendButton.disabled = true;
+        try {
+          if (aiConfig) {
+            const response = await fetch(aiConfig.endpoint, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${aiConfig.key}` },
+              body: JSON.stringify({
+                model: aiConfig.model,
+                temperature: 0.7,
+                messages: [
+                  { role: "system", content: `You are a warm, practical event-planning assistant. Help with ${state.event.type} budgets, timelines, vendor checklists, and personalized ideas. Be concise and kind. Event plan: ${JSON.stringify(state.event)}. Budget: ${JSON.stringify(state.budget)}. Open tasks: ${JSON.stringify(state.tasks.filter(task => !task.done))}.` },
+                  { role: "user", content: clean }
+                ]
+              })
+            });
+            if (!response.ok) throw new Error(`AI request failed (${response.status}). Check the endpoint, model, and API key.`);
+            const data = await response.json();
+            const answer = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+            if (typeof answer !== "string" || !answer.trim()) throw new Error("The AI provider returned an empty response.");
+            appendMessage(answer.trim(), "assistant");
+          } else {
+            appendMessage(localAnswer(clean), "assistant");
+          }
+        } catch (error) {
+          console.error("Planning assistant request failed.", error);
+          appendMessage(`I couldn't reach the AI provider: ${error.message} You can check your connection settings or keep using local planning help.`, "assistant");
+        } finally {
+          sendButton.disabled = false;
+          $("chatInput").focus();
+        }
+      }
+
+      document.querySelectorAll("[data-view], [data-nav]").forEach(button => {
+        button.addEventListener("click", () => navigate(button.dataset.view || button.dataset.nav));
+      });
+      $("editEventButton").addEventListener("click", () => openEventModal());
+      $("newEventButton").addEventListener("click", () => openEventModal(true));
+      $("eventForm").addEventListener("submit", event => {
+        event.preventDefault();
+        const isNew = $("eventForm").dataset.isNew === "true";
+        const nextEvent = {
+          name: $("eventNameInput").value.trim(),
+          type: $("eventTypeInput").value,
+          date: $("eventDateInput").value,
+          guests: Math.max(0, Number($("eventGuestsInput").value) || 0),
+          location: $("eventLocationInput").value.trim(),
+          style: $("eventStyleInput").value.trim(),
+          currency: $("eventCurrencyInput").value.trim() || "$"
+        };
+        if (!nextEvent.name) return;
+        if (isNew) {
+          state = clone(defaultState);
+          state.event = nextEvent;
+          state.milestones = state.milestones.map(item => ({ ...item, date: item.name === "Your celebration day" ? nextEvent.date : item.date }));
+          state.budget.total = 0;
+          state.budget.categories = [];
+          state.tasks = [];
+          state.vendors = [];
+        } else {
+          state.event = nextEvent;
+          const celebration = state.milestones.find(item => item.name === "Your celebration day");
+          if (celebration) celebration.date = nextEvent.date;
+        }
+        saveState();
+        closeModal("eventModal");
+        render();
+        showNotice(isNew ? "Your new event plan is ready." : "Event details updated.");
+      });
+
+      $("editBudgetButton").addEventListener("click", () => {
+        $("budgetTotalInput").value = state.budget.total;
+        openModal("budgetModal");
+      });
+      $("budgetForm").addEventListener("submit", event => {
+        event.preventDefault();
+        state.budget.total = Math.max(0, Number($("budgetTotalInput").value) || 0);
+        saveState();
+        closeModal("budgetModal");
+        render();
+        showNotice("Budget updated.");
+      });
+      $("addCategoryButton").addEventListener("click", () => {
+        const name = window.prompt("What budget category would you like to add?");
+        if (name && name.trim()) {
+          state.budget.categories.push({ name: name.trim(), planned: 0, spent: 0 });
+          saveState();
+          render();
+          showNotice("Budget category added.");
+        }
+      });
+
+      document.querySelectorAll(".filter-chip").forEach(button => button.addEventListener("click", () => {
+        activeFilter = button.dataset.filter;
+        document.querySelectorAll(".filter-chip").forEach(chip => chip.classList.toggle("active", chip === button));
+        renderTasks();
+      }));
+      $("addTaskForm").addEventListener("submit", event => {
+        event.preventDefault();
+        addTask($("taskInput").value);
+        $("taskInput").value = "";
+      });
+      $("focusAddTask").addEventListener("click", () => {
+        navigate("checklist");
+        setTimeout(() => $("taskInput").focus(), 150);
+      });
+      $("addVendorButton").addEventListener("click", () => {
+        const name = window.prompt("Which vendor would you like to keep track of?");
+        if (!name || !name.trim()) return;
+        state.vendors.push({ name: name.trim(), type: "To find", icon: "✳", booked: false });
+        saveState();
+        render();
+        showNotice("Vendor added to your list.");
+      });
+      $("addMilestoneButton").addEventListener("click", () => {
+        const name = window.prompt("What milestone would you like to add?");
+        if (name) addMilestone(name);
+      });
+      $("refreshIdeas").addEventListener("click", async () => {
+        if (aiConfig) {
+          await sendPrompt(`Generate 6 fresh, specific ${state.event.type} ideas for about ${state.event.guests || "my"} guests. The style is ${state.event.style || "not specified"}. Keep them practical and personal. Format each with a short title and explanation.`);
+          return;
+        }
+        ideaOffset++;
+        const ideas = eventIdeas();
+        const grid = $("ideasGrid");
+        grid.animate([{ opacity: 0.45 }, { opacity: 1 }], { duration: 250 });
+        const offset = ideaOffset % ideas.length;
+        const orderedIdeas = ideas.slice(offset).concat(ideas.slice(0, offset));
+        grid.replaceChildren();
+        orderedIdeas.forEach(idea => {
+          const card = document.createElement("article");
+          card.className = "card idea-tile";
+          card.innerHTML = `<div class="idea-tile-icon"></div><h3></h3><p></p><span class="tag"></span>`;
+          card.querySelector(".idea-tile-icon").textContent = idea.icon;
+          card.querySelector("h3").textContent = idea.title;
+          card.querySelector("p").textContent = idea.body;
+          card.querySelector(".tag").textContent = idea.tag;
+          grid.append(card);
+        });
+        showNotice("Reordered your ideas for a fresh look.");
+      });
+
+      $("chatForm").addEventListener("submit", event => {
+        event.preventDefault();
+        sendPrompt($("chatInput").value);
+      });
+      document.querySelectorAll(".suggestion").forEach(button => button.addEventListener("click", () => sendPrompt(button.dataset.prompt)));
+      $("aiSettingsButton").addEventListener("click", () => {
+        $("aiEndpointInput").value = aiConfig ? aiConfig.endpoint : "https://api.openai.com/v1/chat/completions";
+        $("aiModelInput").value = aiConfig ? aiConfig.model : "gpt-4o-mini";
+        $("aiKeyInput").value = "";
+        openModal("aiModal");
+      });
+      $("aiForm").addEventListener("submit", event => {
+        event.preventDefault();
+        const endpoint = $("aiEndpointInput").value.trim();
+        const key = $("aiKeyInput").value.trim();
+        const model = $("aiModelInput").value.trim();
+        if (!endpoint || !key || !model) {
+          showNotice("Enter an endpoint, model, and API key to connect.");
+          return;
+        }
+        try {
+          const parsed = new URL(endpoint);
+          if (parsed.protocol !== "https:" && parsed.hostname !== "localhost" && parsed.hostname !== "127.0.0.1") {
+            showNotice("Use a secure HTTPS endpoint.");
+            return;
+          }
+        } catch {
+          showNotice("Enter a valid chat completions URL.");
+          return;
+        }
+        aiConfig = { endpoint, key, model };
+        closeModal("aiModal");
+        render();
+        showNotice("AI connected for this tab. Your key isn't saved.");
+      });
+      $("disconnectAiButton").addEventListener("click", () => {
+        aiConfig = null;
+        closeModal("aiModal");
+        render();
+        showNotice("Using local planning help. Your key has been cleared.");
+      });
+      document.querySelectorAll("[data-close]").forEach(button => button.addEventListener("click", () => closeModal(button.dataset.close)));
+      document.querySelectorAll(".modal-backdrop").forEach(backdrop => backdrop.addEventListener("click", event => {
+        if (event.target === backdrop) closeModal(backdrop.id);
+      }));
+      document.addEventListener("keydown", event => {
+        if (event.key === "Escape") document.querySelectorAll(".modal-backdrop.open").forEach(modal => closeModal(modal.id));
+      });
+
+      render();
+    })();
+  </script>
+</body>
+</html>
